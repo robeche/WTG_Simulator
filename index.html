@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Aerogenerador — BEM + Dinámica Modal</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Simulador de Aerogenerador</h1>
+    <span class="sub">BEM aerodinámico · dinámica modal (torre, palas, tren de potencia) · control par/pitch</span>
+    <span class="spacer"></span>
+    <span class="region-badge" id="regionBadge">Región —</span>
+    <span class="region-badge" id="simTime">t = 0.0 s</span>
+  </header>
+
+  <div class="app">
+    <div class="left">
+      <div id="viewport"></div>
+
+      <div class="plots-bar">
+        <span>Series temporales</span>
+        <button id="togglePlots">Ocultar gráficas</button>
+      </div>
+      <div class="plots" id="plots">
+        <div class="plot-cell"><canvas id="c_power"></canvas></div>
+        <div class="plot-cell"><canvas id="c_torque"></canvas></div>
+        <div class="plot-cell"><canvas id="c_rotor"></canvas></div>
+        <div class="plot-cell"><canvas id="c_pitch"></canvas></div>
+        <div class="plot-cell"><canvas id="c_tsr"></canvas></div>
+        <div class="plot-cell"><canvas id="c_wind"></canvas></div>
+        <div class="plot-cell"><canvas id="c_thrust"></canvas></div>
+        <div class="plot-cell"><canvas id="c_struct"></canvas></div>
+      </div>
+
+      <div class="gauges" id="gauges">
+        <div class="gauge"><div class="label">Viento</div><div class="value"><span id="g_wind">0</span><span class="unit">m/s</span></div></div>
+        <div class="gauge"><div class="label">Potencia eléctrica</div><div class="value"><span id="g_power">0</span><span class="unit">MW</span></div></div>
+        <div class="gauge"><div class="label">Vel. rotor</div><div class="value"><span id="g_rotor">0</span><span class="unit">rpm</span></div></div>
+        <div class="gauge"><div class="label">Pitch</div><div class="value"><span id="g_pitch">0</span><span class="unit">°</span></div></div>
+        <div class="gauge"><div class="label">TSR (λ)</div><div class="value"><span id="g_tsr">0</span></div></div>
+        <div class="gauge"><div class="label">Par eléctrico</div><div class="value"><span id="g_gentq">0</span><span class="unit">kNm</span></div></div>
+        <div class="gauge"><div class="label">Empuje</div><div class="value"><span id="g_thrust">0</span><span class="unit">kN</span></div></div>
+        <div class="gauge"><div class="label">Cp</div><div class="value"><span id="g_cp">0</span></div></div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <h2>Simulación</h2>
+      <div class="btnrow">
+        <button class="primary" id="btnPlay">▶ Iniciar</button>
+        <button id="btnReset">↺ Reset</button>
+      </div>
+      <button class="estop" id="btnEstop">⏹ PARADA DE EMERGENCIA</button>
+      <div class="control">
+        <label>Velocidad de simulación <span class="v" id="v_speed">1.0×</span></label>
+        <input type="range" id="s_speed" min="0.25" max="6" step="0.25" value="1" />
+      </div>
+
+      <h2>Viento</h2>
+      <div class="control">
+        <label>Velocidad media <span class="v" id="v_wind">11.4 m/s</span></label>
+        <input type="range" id="s_wind" min="3" max="25" step="0.1" value="11.4" />
+      </div>
+      <div class="control">
+        <label>Turbulencia <span class="v" id="v_turb">0 %</span></label>
+        <input type="range" id="s_turb" min="0" max="25" step="1" value="0" />
+      </div>
+      <div class="control">
+        <label>Cizalladura (α) <span class="v" id="v_shear">0.14</span></label>
+        <input type="range" id="s_shear" min="0" max="0.4" step="0.01" value="0.14" />
+      </div>
+      <div class="control">
+        <label>Amplitud de ráfaga <span class="v" id="v_gust">0 m/s</span></label>
+        <input type="range" id="s_gust" min="0" max="8" step="0.5" value="0" />
+      </div>
+      <div class="control">
+        <label>Periodo de ráfaga <span class="v" id="v_gustT">12 s</span></label>
+        <input type="range" id="s_gustT" min="3" max="30" step="1" value="12" />
+      </div>
+
+      <h2>Escenarios</h2>
+      <button class="scenario" data-scn="rated">Punto nominal (11.4 m/s)</button>
+      <button class="scenario" data-scn="below">Carga parcial (8 m/s)</button>
+      <button class="scenario" data-scn="above">Plena potencia (18 m/s)</button>
+      <button class="scenario" data-scn="gust">Ráfaga + turbulencia</button>
+      <button class="scenario" data-scn="storm">Tormenta (24 m/s, turbulento)</button>
+
+      <h2>Visualización</h2>
+      <div class="control">
+        <label>Exageración de deflexiones <span class="v" id="v_exag">8×</span></label>
+        <input type="range" id="s_exag" min="1" max="30" step="1" value="8" />
+      </div>
+
+      <h2>Modelo</h2>
+      <p class="hint">
+        Aerodinámica: Blade Element Momentum (24 elementos, pérdidas de punta/raíz de Prandtl,
+        corrección de Glauert).<br />
+        Elasticidad: superposición modal (2º orden) de los primeros modos de torre
+        (fore-aft / side-side), aleteo y arrastre de pala, más torsión del tren de potencia.<br />
+        Control: par óptimo en carga parcial y PI de pitch con gain scheduling en plena potencia.
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
