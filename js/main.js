@@ -16,23 +16,23 @@ const col = {
 };
 
 plots.add(document.getElementById("c_power"), {
-  title: "Potencia", unit: "MW", min: 0,
-  series: [{ name: "Eléctrica", color: col.power }, { name: "Aerodinámica", color: col.aero }],
+  title: "Power", unit: "MW", min: 0,
+  series: [{ name: "Electrical", color: col.power }, { name: "Aerodynamic", color: col.aero }],
   extract: (o) => [o.elecPower / 1e6, o.aeroPower / 1e6],
 });
 plots.add(document.getElementById("c_torque"), {
-  title: "Par", unit: "kNm",
-  series: [{ name: "Eléctrico (LSS)", color: col.gen }, { name: "Aerodinámico", color: col.aero }],
+  title: "Torque", unit: "kNm",
+  series: [{ name: "Electrical (LSS)", color: col.gen }, { name: "Aerodynamic", color: col.aero }],
   extract: (o) => [o.genTorque * 97 / 1e3, o.aeroTorque / 1e3],
 });
 plots.add(document.getElementById("c_rotor"), {
-  title: "Vel. rotor", unit: "rpm", min: 0,
+  title: "Rotor speed", unit: "rpm", min: 0,
   series: [{ name: "Rotor", color: col.rotor }],
   extract: (o) => [o.rotorSpeedRPM],
 });
 plots.add(document.getElementById("c_pitch"), {
   title: "Pitch", unit: "°", min: 0,
-  series: [{ name: "Paso", color: col.pitch }],
+  series: [{ name: "Pitch", color: col.pitch }],
   extract: (o) => [o.pitchDeg],
 });
 plots.add(document.getElementById("c_tsr"), {
@@ -41,21 +41,21 @@ plots.add(document.getElementById("c_tsr"), {
   extract: (o) => [o.lambda],
 });
 plots.add(document.getElementById("c_wind"), {
-  title: "Viento", unit: "m/s", min: 0,
-  series: [{ name: "Buje", color: col.wind }],
+  title: "Wind", unit: "m/s", min: 0,
+  series: [{ name: "Hub", color: col.wind }],
   extract: (o) => [o.wind],
 });
 plots.add(document.getElementById("c_thrust"), {
-  title: "Empuje", unit: "kN", min: 0,
-  series: [{ name: "Empuje rotor", color: col.thrust }],
+  title: "Thrust", unit: "kN", min: 0,
+  series: [{ name: "Rotor thrust", color: col.thrust }],
   extract: (o) => [o.thrust / 1e3],
 });
 plots.add(document.getElementById("c_struct"), {
-  title: "Deflexiones", unit: "m",
+  title: "Deflections", unit: "m",
   series: [
-    { name: "Torre FA", color: col.tower },
-    { name: "Punta pala (flap)", color: col.blade },
-    { name: "Pala (edge)", color: col.edge },
+    { name: "Tower FA", color: col.tower },
+    { name: "Blade tip (flap)", color: col.blade },
+    { name: "Blade (edge)", color: col.edge },
   ],
   extract: (o) => [o.towerFA, o.bladeTip, o.bladeEdge],
 });
@@ -107,16 +107,16 @@ function updateReadouts(o) {
   $("g_gentq").textContent = (o.genTorque * 97 / 1e3).toFixed(0);
   $("g_thrust").textContent = (o.thrust / 1e3).toFixed(0);
   $("g_cp").textContent = o.Cp.toFixed(3);
-  $("regionBadge").textContent = o.region === 0 ? "PARADA EMERGENCIA" : "Región " + o.region;
+  $("regionBadge").textContent = o.region === 0 ? "EMERGENCY STOP" : "Region " + o.region;
   $("simTime").textContent = "t = " + o.t.toFixed(1) + " s";
 }
 
-// ---------- Controles ----------
+// ---------- Controls ----------
 let exag = 8;
 
 $("btnPlay").addEventListener("click", () => {
   running = !running;
-  $("btnPlay").textContent = running ? "⏸ Pausar" : "▶ Iniciar";
+  $("btnPlay").textContent = running ? "⏸ Pause" : "▶ Start";
   $("btnPlay").classList.toggle("primary", !running);
   lastWall = 0;
 });
@@ -130,14 +130,14 @@ $("btnReset").addEventListener("click", () => {
   updateReadouts(sim.last);
 });
 
-// Parada de emergencia: feathering de palas + freno mecánico, o rearme.
+// Emergency stop: blade feathering + mechanical brake, or re-arm.
 function updateEstopButton() {
   const btn = $("btnEstop");
   if (sim.isEmergency) {
-    btn.textContent = "⟳ REARMAR";
+    btn.textContent = "⟳ RE-ARM";
     btn.classList.add("armed");
   } else {
-    btn.textContent = "⏹ PARADA DE EMERGENCIA";
+    btn.textContent = "⏹ EMERGENCY STOP";
     btn.classList.remove("armed");
   }
 }
@@ -147,10 +147,10 @@ $("btnEstop").addEventListener("click", () => {
     sim.clearEmergency();
   } else {
     sim.emergencyStop();
-    // Asegura que la simulación corre para visualizar la secuencia de parada.
+    // Make sure the simulation runs so the stop sequence is visible.
     if (!running) {
       running = true;
-      $("btnPlay").textContent = "⏸ Pausar";
+      $("btnPlay").textContent = "⏸ Pause";
       $("btnPlay").classList.remove("primary");
       lastWall = 0;
     }
@@ -177,7 +177,7 @@ bindSlider("s_gust", "v_gust", (v) => v.toFixed(1) + " m/s", (v) => (sim.wind.gu
 bindSlider("s_gustT", "v_gustT", (v) => v.toFixed(0) + " s", (v) => (sim.wind.gustPeriod = v));
 bindSlider("s_exag", "v_exag", (v) => v + "×", (v) => (exag = v));
 
-// Escenarios
+// Scenarios
 const scenarios = {
   rated: { wind: 11.4, turb: 0, gust: 0, shear: 0.14 },
   below: { wind: 8, turb: 4, gust: 0, shear: 0.14 },
@@ -196,7 +196,7 @@ document.querySelectorAll(".scenario").forEach((btn) => {
     if (s.gustT) setSlider("s_gustT", s.gustT);
     if (!running) {
       running = true;
-      $("btnPlay").textContent = "⏸ Pausar";
+      $("btnPlay").textContent = "⏸ Pause";
       $("btnPlay").classList.remove("primary");
       lastWall = 0;
     }
@@ -209,18 +209,54 @@ function setSlider(id, value) {
   el.dispatchEvent(new Event("input"));
 }
 
-// Toggle gráficas
+// Toggle plots
 $("togglePlots").addEventListener("click", () => {
   const p = $("plots");
   const hidden = p.classList.toggle("collapsed");
-  $("togglePlots").textContent = hidden ? "Mostrar gráficas" : "Ocultar gráficas";
+  $("togglePlots").textContent = hidden ? "Show plots" : "Hide plots";
   setTimeout(() => { viz.resize(); plots.resize(); }, 220);
 });
 
-// Redimensionado
+// Resize
 window.addEventListener("resize", () => {
   viz.resize();
   plots.resize();
+  if (betzApp) betzApp.resize();
+});
+
+// ---------- Pestañas / sub-aplicaciones ----------
+let betzApp = null; // inicialización perezosa la primera vez que se abre
+
+function activateTab(name) {
+  document.querySelectorAll(".tab-btn").forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === name)
+  );
+  document.querySelectorAll(".tab-panel").forEach((p) =>
+    p.classList.toggle("active", p.id === "tab-" + name)
+  );
+  document.body.classList.toggle("tab-betz-active", name === "betz");
+
+  if (name === "betz") {
+    if (!betzApp) {
+      import("./betz.js").then(({ BetzApp }) => {
+        betzApp = new BetzApp(document.getElementById("betzViewport"));
+        betzApp.setActive(true);
+      });
+    } else {
+      betzApp.setActive(true);
+    }
+  } else if (betzApp) {
+    betzApp.setActive(false);
+  }
+
+  if (name === "simulator") {
+    // El contenedor recupera su tamaño al hacerse visible.
+    setTimeout(() => { viz.resize(); plots.resize(); }, 30);
+  }
+}
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
 });
 
 // Inicializa lecturas y arranca el bucle de render

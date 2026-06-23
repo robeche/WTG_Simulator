@@ -166,8 +166,10 @@ export class Visualizer {
         const geo = new THREE.BoxGeometry(thick, len, chord);
         const mesh = new THREE.Mesh(geo, matBlade);
         mesh.castShadow = true;
-        // torsión geométrica de la pala (alrededor del eje de envergadura, Y)
-        mesh.rotation.y = ga.twist;
+        // torsión geométrica de la pala (alrededor del eje de envergadura, Y).
+        // Signo negativo: el rotor gira en sentido horario (visto desde aguas
+        // arriba), por lo que el borde de ataque queda en la dirección del giro.
+        mesh.rotation.y = -ga.twist;
         mesh.userData = { rMid: (ra + rb) / 2, frac: ((ra + rb) / 2 - r0) / (R - r0) };
         pitchAxis.add(mesh);
         segs.push(mesh);
@@ -198,8 +200,8 @@ export class Visualizer {
     this.topGroup.rotation.z = (faTip / H) * 0.5;
     this.topGroup.rotation.x = (ssTip / H) * 0.5;
 
-    // Giro del rotor
-    this.rotorSpin.rotation.x = viz.azimuth;
+    // Giro del rotor (negado para que gire en sentido horario visto desde aguas arriba)
+    this.rotorSpin.rotation.x = -viz.azimuth;
 
     // Palas: paso + flexión
     for (let b = 0; b < this.blades.length; b++) {
@@ -226,3 +228,95 @@ export class Visualizer {
     this.renderer.setSize(w, h);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Modelo estático reutilizable del aerogenerador (misma geometría que el
+// simulador). Devuelve un grupo con la torre, góndola, buje y palas, además
+// de referencias al grupo giratorio del rotor y a la posición del buje, para
+// poder colocarlo/escalarlo en otras escenas (p. ej. el túnel de Betz).
+export function createTurbineModel(opts = {}) {
+  const pitch = opts.pitch ?? 0; // paso de pala (rad)
+  const matTower = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6, metalness: 0.1 });
+  const matNacelle = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.5, metalness: 0.2 });
+  const matHub = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5 });
+  const matBlade = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4, metalness: 0.05, side: THREE.DoubleSide });
+
+  const root = new THREE.Group();
+
+  // Torre (cono) desde el suelo (y=0) hasta el buje
+  const H = P.hubHeight;
+  const baseR = 3.0, topR = 1.9;
+  const tower = new THREE.Mesh(
+    new THREE.CylinderGeometry(topR, baseR, H, 24, 1),
+    matTower
+  );
+  tower.position.y = H / 2;
+  root.add(tower);
+
+  // Conjunto superior (góndola + rotor) en la cima de la torre
+  const topGroup = new THREE.Group();
+  topGroup.position.y = H;
+  root.add(topGroup);
+
+  const nacelle = new THREE.Mesh(new THREE.BoxGeometry(14, 8, 8), matNacelle);
+  nacelle.position.set(-2, 0, 0);
+  topGroup.add(nacelle);
+
+  const rotorTilt = new THREE.Group();
+  rotorTilt.rotation.z = P.shaftTilt;
+  topGroup.add(rotorTilt);
+
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.8, 0.8, P.overhang + 2, 16),
+    matHub
+  );
+  shaft.rotation.z = Math.PI / 2;
+  shaft.position.x = P.overhang / 2;
+  rotorTilt.add(shaft);
+
+  const rotorSpin = new THREE.Group();
+  rotorSpin.position.x = P.overhang;
+  rotorTilt.add(rotorSpin);
+
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(2.0, 24, 16), matHub);
+  rotorSpin.add(hub);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.5, 24), matHub);
+  nose.rotation.z = -Math.PI / 2;
+  nose.position.x = 2.3;
+  rotorSpin.add(nose);
+
+  for (let b = 0; b < P.nBlades; b++) {
+    const pitchGroup = new THREE.Group();
+    pitchGroup.rotation.x = (b * 2 * Math.PI) / P.nBlades;
+    rotorSpin.add(pitchGroup);
+
+    const pitchAxis = new THREE.Group();
+    pitchAxis.rotation.y = pitch;
+    pitchGroup.add(pitchAxis);
+
+    const r0 = P.hubRadius;
+    const R = P.rotorRadius;
+    for (let i = 0; i < BLADE_SEGMENTS; i++) {
+      const ra = r0 + ((R - r0) * i) / BLADE_SEGMENTS;
+      const rb = r0 + ((R - r0) * (i + 1)) / BLADE_SEGMENTS;
+      const ga = bladeGeometryAt(ra);
+      const gb = bladeGeometryAt(rb);
+      const len = rb - ra;
+      const chord = (ga.chord + gb.chord) / 2;
+      const thick = chord * 0.18;
+      const geo = new THREE.BoxGeometry(thick, len, chord);
+      const mesh = new THREE.Mesh(geo, matBlade);
+      mesh.rotation.y = -ga.twist; // borde de ataque en la dirección del giro (horario)
+      mesh.position.y = (ra + rb) / 2;
+      pitchAxis.add(mesh);
+    }
+  }
+
+  // Posición del buje relativa a la raíz (para centrarlo en otra escena)
+  const hubPos = new THREE.Vector3();
+  rotorSpin.updateWorldMatrix(true, false);
+  hubPos.setFromMatrixPosition(rotorSpin.matrixWorld);
+
+  return { root, rotorSpin, hubPos, hubHeight: H, rotorRadius: P.rotorRadius };
+}
+

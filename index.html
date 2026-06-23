@@ -1,35 +1,44 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulador de Aerogenerador — BEM + Dinámica Modal</title>
+  <title>WTG Tools — Wind Turbine Simulator & Betz Limit</title>
   <link rel="stylesheet" href="css/style.css" />
+  <!-- KaTeX for rendering equations -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "./js/vendor/three.module.js",
+      "three/addons/": "./js/vendor/addons/"
     }
   }
   </script>
 </head>
 <body>
   <header>
-    <h1>Simulador de Aerogenerador</h1>
-    <span class="sub">BEM aerodinámico · dinámica modal (torre, palas, tren de potencia) · control par/pitch</span>
+    <h1>WTG Tools</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="simulator">Full simulator</button>
+      <button class="tab-btn" data-tab="betz">Induction &amp; Betz Limit</button>
+    </nav>
     <span class="spacer"></span>
-    <span class="region-badge" id="regionBadge">Región —</span>
+    <span class="region-badge" id="regionBadge">Region —</span>
     <span class="region-badge" id="simTime">t = 0.0 s</span>
   </header>
 
-  <div class="app">
+  <main class="tab-container">
+    <!-- ============================ TAB 1: SIMULATOR ============================ -->
+    <section id="tab-simulator" class="tab-panel active">
+      <div class="app">
     <div class="left">
       <div id="viewport"></div>
 
       <div class="plots-bar">
-        <span>Series temporales</span>
-        <button id="togglePlots">Ocultar gráficas</button>
+        <span>Time series</span>
+        <button id="togglePlots">Hide plots</button>
       </div>
       <div class="plots" id="plots">
         <div class="plot-cell"><canvas id="c_power"></canvas></div>
@@ -43,74 +52,149 @@
       </div>
 
       <div class="gauges" id="gauges">
-        <div class="gauge"><div class="label">Viento</div><div class="value"><span id="g_wind">0</span><span class="unit">m/s</span></div></div>
-        <div class="gauge"><div class="label">Potencia eléctrica</div><div class="value"><span id="g_power">0</span><span class="unit">MW</span></div></div>
-        <div class="gauge"><div class="label">Vel. rotor</div><div class="value"><span id="g_rotor">0</span><span class="unit">rpm</span></div></div>
+        <div class="gauge"><div class="label">Wind</div><div class="value"><span id="g_wind">0</span><span class="unit">m/s</span></div></div>
+        <div class="gauge"><div class="label">Electrical power</div><div class="value"><span id="g_power">0</span><span class="unit">MW</span></div></div>
+        <div class="gauge"><div class="label">Rotor speed</div><div class="value"><span id="g_rotor">0</span><span class="unit">rpm</span></div></div>
         <div class="gauge"><div class="label">Pitch</div><div class="value"><span id="g_pitch">0</span><span class="unit">°</span></div></div>
         <div class="gauge"><div class="label">TSR (λ)</div><div class="value"><span id="g_tsr">0</span></div></div>
-        <div class="gauge"><div class="label">Par eléctrico</div><div class="value"><span id="g_gentq">0</span><span class="unit">kNm</span></div></div>
-        <div class="gauge"><div class="label">Empuje</div><div class="value"><span id="g_thrust">0</span><span class="unit">kN</span></div></div>
+        <div class="gauge"><div class="label">Electrical torque</div><div class="value"><span id="g_gentq">0</span><span class="unit">kNm</span></div></div>
+        <div class="gauge"><div class="label">Thrust</div><div class="value"><span id="g_thrust">0</span><span class="unit">kN</span></div></div>
         <div class="gauge"><div class="label">Cp</div><div class="value"><span id="g_cp">0</span></div></div>
       </div>
     </div>
 
     <div class="sidebar">
-      <h2>Simulación</h2>
+      <h2>Simulation</h2>
       <div class="btnrow">
-        <button class="primary" id="btnPlay">▶ Iniciar</button>
+        <button class="primary" id="btnPlay">▶ Start</button>
         <button id="btnReset">↺ Reset</button>
       </div>
-      <button class="estop" id="btnEstop">⏹ PARADA DE EMERGENCIA</button>
+      <button class="estop" id="btnEstop">⏹ EMERGENCY STOP</button>
       <div class="control">
-        <label>Velocidad de simulación <span class="v" id="v_speed">1.0×</span></label>
+        <label>Simulation speed <span class="v" id="v_speed">1.0×</span></label>
         <input type="range" id="s_speed" min="0.25" max="6" step="0.25" value="1" />
       </div>
 
-      <h2>Viento</h2>
+      <h2>Wind</h2>
       <div class="control">
-        <label>Velocidad media <span class="v" id="v_wind">11.4 m/s</span></label>
+        <label>Mean speed <span class="v" id="v_wind">11.4 m/s</span></label>
         <input type="range" id="s_wind" min="3" max="25" step="0.1" value="11.4" />
       </div>
       <div class="control">
-        <label>Turbulencia <span class="v" id="v_turb">0 %</span></label>
+        <label>Turbulence <span class="v" id="v_turb">0 %</span></label>
         <input type="range" id="s_turb" min="0" max="25" step="1" value="0" />
       </div>
       <div class="control">
-        <label>Cizalladura (α) <span class="v" id="v_shear">0.14</span></label>
+        <label>Wind shear (α) <span class="v" id="v_shear">0.14</span></label>
         <input type="range" id="s_shear" min="0" max="0.4" step="0.01" value="0.14" />
       </div>
       <div class="control">
-        <label>Amplitud de ráfaga <span class="v" id="v_gust">0 m/s</span></label>
+        <label>Gust amplitude <span class="v" id="v_gust">0 m/s</span></label>
         <input type="range" id="s_gust" min="0" max="8" step="0.5" value="0" />
       </div>
       <div class="control">
-        <label>Periodo de ráfaga <span class="v" id="v_gustT">12 s</span></label>
+        <label>Gust period <span class="v" id="v_gustT">12 s</span></label>
         <input type="range" id="s_gustT" min="3" max="30" step="1" value="12" />
       </div>
 
-      <h2>Escenarios</h2>
-      <button class="scenario" data-scn="rated">Punto nominal (11.4 m/s)</button>
-      <button class="scenario" data-scn="below">Carga parcial (8 m/s)</button>
-      <button class="scenario" data-scn="above">Plena potencia (18 m/s)</button>
-      <button class="scenario" data-scn="gust">Ráfaga + turbulencia</button>
-      <button class="scenario" data-scn="storm">Tormenta (24 m/s, turbulento)</button>
+      <h2>Scenarios</h2>
+      <button class="scenario" data-scn="rated">Rated point (11.4 m/s)</button>
+      <button class="scenario" data-scn="below">Partial load (8 m/s)</button>
+      <button class="scenario" data-scn="above">Full power (18 m/s)</button>
+      <button class="scenario" data-scn="gust">Gust + turbulence</button>
+      <button class="scenario" data-scn="storm">Storm (24 m/s, turbulent)</button>
 
-      <h2>Visualización</h2>
+      <h2>Visualization</h2>
       <div class="control">
-        <label>Exageración de deflexiones <span class="v" id="v_exag">8×</span></label>
+        <label>Deflection exaggeration <span class="v" id="v_exag">8×</span></label>
         <input type="range" id="s_exag" min="1" max="30" step="1" value="8" />
       </div>
 
-      <h2>Modelo</h2>
+      <h2>Model</h2>
       <p class="hint">
-        Aerodinámica: Blade Element Momentum (24 elementos, pérdidas de punta/raíz de Prandtl,
-        corrección de Glauert).<br />
-        Elasticidad: superposición modal (2º orden) de los primeros modos de torre
-        (fore-aft / side-side), aleteo y arrastre de pala, más torsión del tren de potencia.<br />
-        Control: par óptimo en carga parcial y PI de pitch con gain scheduling en plena potencia.
+        Aerodynamics: Blade Element Momentum (24 elements, Prandtl tip/root losses,
+        Glauert correction).<br />
+        Elasticity: modal superposition (2nd order) of the first tower modes
+        (fore-aft / side-side), blade flap and edge, plus drive-train torsion.<br />
+        Control: optimal torque in partial load and PI pitch control with gain scheduling at full power.
       </p>
     </div>
   </div>
+    </section>
+
+    <!-- ============================ TAB 2: BETZ ============================ -->
+    <section id="tab-betz" class="tab-panel">
+      <div class="betz-app">
+        <div class="betz-left">
+          <div id="betzViewport">
+            <!-- Zone explanation cards overlaid on their flow regions -->
+            <div class="zone-card zone-overlay" id="zone_up">
+              <div class="zone-title">Upstream</div>
+              <div class="zone-text" id="zone_up_text"></div>
+            </div>
+            <div class="zone-card zone-overlay" id="zone_rotor">
+              <div class="zone-title">At the rotor</div>
+              <div class="zone-text" id="zone_rotor_text"></div>
+            </div>
+            <div class="zone-card zone-overlay" id="zone_down">
+              <div class="zone-title">Downstream (wake)</div>
+              <div class="zone-text" id="zone_down_text"></div>
+            </div>
+          </div>
+          <div class="betz-gauges">
+            <div class="gauge"><div class="label">Induction a</div><div class="value"><span id="b_a">0.333</span></div></div>
+            <div class="gauge"><div class="label">V∞ (inflow)</div><div class="value"><span id="b_v1">10.0</span><span class="unit">m/s</span></div></div>
+            <div class="gauge"><div class="label">V disc</div><div class="value"><span id="b_vd">6.7</span><span class="unit">m/s</span></div></div>
+            <div class="gauge"><div class="label">V wake</div><div class="value"><span id="b_vw">3.3</span><span class="unit">m/s</span></div></div>
+            <div class="gauge"><div class="label">C<sub>P</sub></div><div class="value"><span id="b_cp">0.593</span></div></div>
+            <div class="gauge"><div class="label">C<sub>T</sub></div><div class="value"><span id="b_ct">0.889</span></div></div>
+          </div>
+        </div>
+
+        <div class="betz-sidebar">
+          <h2>Actuator disc theory</h2>
+          <p class="hint">
+            The rotor is modeled as a permeable <strong>actuator disc</strong> that slows the air down.
+            The <strong>axial induction</strong> <em>a</em> measures how much the wind speed is reduced
+            at the rotor plane relative to the free stream. The stream tube
+            <strong>contracts</strong> upstream and <strong>expands</strong> in the wake because the air
+            slows down (mass conservation). The <strong>Betz limit</strong> is the value of
+            <em>a</em> that maximizes the extracted power.
+          </p>
+
+          <div class="control">
+            <label>Axial induction factor <span class="v"><em>a</em> = <span id="b_a_slider_val">0.333</span></span></label>
+            <input type="range" id="b_a_slider" min="0" max="0.5" step="0.001" value="0.333" />
+          </div>
+          <div class="btnrow">
+            <button class="primary" id="b_optimize">⚡ Optimize (Betz)</button>
+            <button id="b_reset">↺ a = 0</button>
+          </div>
+
+          <h2>Power coefficient C<sub>P</sub>(a)</h2>
+          <canvas id="betzPlot" class="betz-plot"></canvas>
+          <p class="hint" id="b_status"></p>
+
+          <h2>Mass conservation</h2>
+          <div class="eqblock" id="eq_mass"></div>
+
+          <h2>Velocities</h2>
+          <div class="eqblock" id="eq_vel"></div>
+
+          <h2>Thrust and power</h2>
+          <div class="eqblock" id="eq_thrust"></div>
+          <div class="eqblock" id="eq_power"></div>
+
+          <h2>Dimensionless coefficients</h2>
+          <div class="eqblock" id="eq_coeffs"></div>
+
+          <h2>Optimization → Betz Limit</h2>
+          <div class="eqblock" id="eq_opt"></div>
+          <div class="eqblock betz-result" id="eq_betz"></div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script type="module" src="js/main.js"></script>
 </body>

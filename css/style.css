@@ -39,11 +39,28 @@ header .region-badge {
   background: var(--panel2); border: 1px solid var(--border);
 }
 
+/* --- Pestañas --- */
+.tabs { display: flex; gap: 4px; margin-left: 8px; }
+.tab-btn {
+  flex: none; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--muted);
+}
+.tab-btn:hover { color: var(--text); background: var(--panel2); border-color: var(--border); }
+.tab-btn.active {
+  color: #fff; background: var(--accent); border-color: var(--accent);
+}
+body.tab-betz-active .region-badge { display: none; }
+
+.tab-container { height: calc(100vh - 46px); }
+.tab-panel { display: none; height: 100%; }
+.tab-panel.active { display: block; }
+
 .app {
   display: grid;
   grid-template-columns: 1fr 300px;
   grid-template-rows: 1fr;
-  height: calc(100vh - 46px);
+  height: 100%;
 }
 
 .left {
@@ -145,3 +162,114 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
 .plot-cell canvas { width: 100%; height: 100%; display: block; }
 
 .hint { color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+/* ===================== PESTAÑA BETZ ===================== */
+.betz-app {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  height: 100%;
+}
+.betz-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+#betzViewport {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  background: linear-gradient(180deg, #0b1622, #0e1c2c);
+}
+.betz-gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+}
+.betz-gauges .gauge { background: var(--panel); padding: 8px 10px; }
+
+.betz-sidebar {
+  background: var(--panel);
+  overflow-y: auto;
+  padding: 14px;
+}
+.betz-sidebar h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); margin: 18px 0 8px; border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.betz-sidebar h2:first-child { margin-top: 0; }
+.betz-sidebar .hint { margin: 0 0 10px; }
+
+.betz-plot {
+  width: 100%;
+  height: 180px;
+  display: block;
+  background: #11151c;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.eqblock {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+.eqblock .katex { color: var(--text); white-space: normal; }
+.eqblock .katex-display { margin: 0.3em 0; overflow-x: auto; overflow-y: hidden; }
+.betz-result {
+  background: rgba(63, 185, 80, 0.12);
+  border-color: var(--accent2);
+}
+
+#b_status { color: var(--accent2); font-weight: 600; font-size: 12px; margin: 6px 0 0; }
+
+/* Zone explanation cards */
+.zone-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.zone-card {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--panel2);
+}
+/* Cards overlaid on the 3D viewport, anchored above their velocity labels */
+.zone-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 215px;
+  max-width: 30%;
+  background: rgba(10, 22, 36, 0.82);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+#zone_up { border-left-color: #56d4dd; }
+#zone_rotor { border-left-color: #f0c040; }
+#zone_down { border-left-color: #f0883e; }
+.zone-title {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+#zone_up .zone-title { color: #56d4dd; }
+#zone_rotor .zone-title { color: #f0c040; }
+#zone_down .zone-title { color: #f0883e; }
+.zone-text { font-size: 12px; line-height: 1.4; color: var(--text); }
+.zone-text strong { color: #fff; }
