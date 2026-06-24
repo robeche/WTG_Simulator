@@ -58,14 +58,6 @@ export class BetzApp {
     this._initPlot();
     this._renderEquations();
 
-    // Info cards are anchored under their matching velocity label.
-    this.cards = {
-      up: document.getElementById("zone_up"),
-      rotor: document.getElementById("zone_rotor"),
-      down: document.getElementById("zone_down"),
-    };
-    this._cardProj = new THREE.Vector3();
-
     this.setInduction(this.a);
 
     this._loop = this._loop.bind(this);
@@ -744,48 +736,6 @@ export class BetzApp {
     if (this.rotor) this.rotor.rotation.x -= dt * 0.9 * (1 - this.a); // horario visto desde aguas arriba; frena al aumentar la inducción
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
-    this._positionCards();
-  }
-
-  // Anchor each HTML info card just above its matching 3D velocity label,
-  // so the card stays connected to the velocity it explains as the view orbits.
-  _positionCards() {
-    if (!this.cards || !this.labels) return;
-    const w = this.container.clientWidth, h = this.container.clientHeight;
-    if (!w || !h) return;
-    const pairs = [
-      [this.labels.vinf, this.cards.up],
-      [this.labels.vdisc, this.cards.rotor],
-      [this.labels.vwake, this.cards.down],
-    ];
-    const v = this._cardProj;
-    const vTop = this._cardProj2 || (this._cardProj2 = new THREE.Vector3());
-    const up = this._cardUp || (this._cardUp = new THREE.Vector3());
-    for (const [label, card] of pairs) {
-      if (!label || !card) continue;
-      v.copy(label.position).project(this.camera);
-      const behind = v.z > 1; // label is behind the camera
-      const sx = (v.x * 0.5 + 0.5) * w;
-      const sy = (-v.y * 0.5 + 0.5) * h;
-      // Measure the label's on-screen half-height by projecting its top edge,
-      // so the card can sit fully above the velocity box (not overlapping it).
-      up.set(0, 1, 0).applyQuaternion(this.camera.quaternion);
-      const halfWorld = (label.scale.y || 4.5) / 2;
-      vTop.copy(label.position).addScaledVector(up, halfWorld).project(this.camera);
-      const sTopY = (-vTop.y * 0.5 + 0.5) * h;
-      const labelHalfH = Math.abs(sy - sTopY);
-      const cw = card.offsetWidth || 215;
-      const ch = card.offsetHeight || 80;
-      let left = sx - cw / 2;
-      let top = sy - labelHalfH - ch - 14; // clear of the velocity box top edge
-      left = Math.max(8, Math.min(w - cw - 8, left));
-      top = Math.max(8, Math.min(h - ch - 8, top));
-      card.style.left = left + "px";
-      card.style.top = top + "px";
-      card.style.right = "auto";
-      card.style.transform = "none";
-      card.style.opacity = behind ? "0" : "1";
-    }
   }
 
   setActive(b) {

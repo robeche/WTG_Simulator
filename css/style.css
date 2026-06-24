@@ -319,23 +319,31 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
   padding: 8px 12px;
   background: var(--panel2);
 }
-/* Cards overlaid on the 3D viewport, anchored above their velocity labels */
+/* Cards fixed at the bottom of the 3D viewport, above the gauges */
 .zone-overlay {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 215px;
-  max-width: 30%;
-  background: rgba(10, 22, 36, 0.82);
+  bottom: 12px;
+  width: 28%;
+  max-width: 280px;
+  background: rgba(10, 22, 36, 0.88);
   backdrop-filter: blur(3px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   z-index: 5;
   pointer-events: none;
-  transition: opacity 0.2s ease;
 }
-#zone_up { border-left-color: #56d4dd; }
-#zone_rotor { border-left-color: #f0c040; }
-#zone_down { border-left-color: #f0883e; }
+#zone_up { 
+  border-left-color: #56d4dd;
+  left: 12px;
+}
+#zone_rotor { 
+  border-left-color: #f0c040;
+  left: 50%;
+  transform: translateX(-50%);
+}
+#zone_down { 
+  border-left-color: #f0883e;
+  right: 12px;
+}
 .zone-title {
   font-weight: 700;
   font-size: 12px;
