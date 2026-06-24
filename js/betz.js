@@ -92,6 +92,13 @@ export class BetzApp {
     this.controls.enableDamping = true;
     this.controls.update();
 
+    // Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)
+    this.container.addEventListener("wheel", (e) => {
+      if (e.ctrlKey) {
+        e.stopPropagation(); // Let browser handle zoom
+      }
+    }, { passive: false, capture: true });
+
     this.scene.add(new THREE.HemisphereLight(0xbcd6ff, 0x1a2535, 1.1));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(-20, 40, 30);

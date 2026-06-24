@@ -44,6 +44,13 @@ export class Visualizer {
     this.controls.enableDamping = true;
     this.controls.update();
 
+    // Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)
+    this.container.addEventListener("wheel", (e) => {
+      if (e.ctrlKey) {
+        e.stopPropagation(); // Let browser handle zoom
+      }
+    }, { passive: false, capture: true });
+
     // Luces
     const hemi = new THREE.HemisphereLight(0xffffff, 0x556b2f, 0.9);
     this.scene.add(hemi);
