@@ -90,6 +90,9 @@ export class BetzApp {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(4, 0, 0);
     this.controls.enableDamping = true;
+    this.controls.minDistance = 20;
+    this.controls.maxDistance = 400;
+    this.controls.zoomSpeed = 0.5; // Slower, more controlled zoom
     this.controls.update();
 
     // Normalize wheel events to fix GitHub Pages zoom jumping issue

@@ -42,6 +42,9 @@ export class Visualizer {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(0, P.hubHeight * 0.6, 0);
     this.controls.enableDamping = true;
+    this.controls.minDistance = 50;
+    this.controls.maxDistance = 800;
+    this.controls.zoomSpeed = 0.5; // Slower, more controlled zoom
     this.controls.update();
 
     // Normalize wheel events to fix GitHub Pages zoom jumping issue
