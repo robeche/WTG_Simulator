@@ -90,14 +90,29 @@ export class BetzApp {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(4, 0, 0);
     this.controls.enableDamping = true;
-    this.controls.minDistance = 20;
-    this.controls.maxDistance = 200;
     this.controls.update();
 
-    // Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)
-    this.container.addEventListener("wheel", (e) => {
+    // Normalize wheel events to fix GitHub Pages zoom jumping issue
+    this.renderer.domElement.addEventListener("wheel", (e) => {
       if (e.ctrlKey) {
-        e.stopPropagation(); // Let browser handle zoom
+        // Let browser handle zoom
+        e.stopPropagation();
+        return;
+      }
+      // Clamp deltaY to reasonable values to prevent extreme zoom jumps
+      const maxDelta = 50;
+      if (Math.abs(e.deltaY) > maxDelta) {
+        e.stopPropagation();
+        e.preventDefault();
+        const normalized = new WheelEvent("wheel", {
+          deltaY: Math.sign(e.deltaY) * maxDelta,
+          deltaMode: e.deltaMode,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          bubbles: true,
+          cancelable: true,
+        });
+        e.target.dispatchEvent(normalized);
       }
     }, { passive: false, capture: true });
 

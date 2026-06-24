@@ -223,12 +223,7 @@ window.addEventListener("resize", () => {
   plots.resize();
   if (betzApp) betzApp.resize();
 });
-// Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)
-document.getElementById("viewport").addEventListener("wheel", (e) => {
-  if (e.ctrlKey) {
-    e.stopPropagation(); // Let browser handle zoom
-  }
-}, { passive: false, capture: true });
+
 // ---------- Pestañas / sub-aplicaciones ----------
 let betzApp = null; // inicialización perezosa la primera vez que se abre
 
