@@ -149,6 +149,113 @@
             <div class="gauge"><div class="label">C<sub>P</sub></div><div class="value"><span id="b_cp">0.593</span></div></div>
             <div class="gauge"><div class="label">C<sub>T</sub></div><div class="value"><span id="b_ct">0.889</span></div></div>
           </div>
+
+          <!-- Detailed theory explanation panel (collapsible) -->
+          <div class="theory-panel">
+            <button class="theory-toggle" id="theoryToggle">
+              <span class="toggle-icon">▼</span>
+              <span class="toggle-text">Mathematical Development</span>
+            </button>
+            <div class="theory-content" id="theoryContent">
+              <div class="theory-section">
+                <h3>1. Fundamental Assumptions</h3>
+                <p>
+                  Actuator disc theory models the wind turbine rotor as an infinitesimally thin,
+                  permeable disc that extracts energy from the flow. Key assumptions:
+                </p>
+                <ul>
+                  <li><strong>Incompressible flow:</strong> Air density ρ remains constant (valid for wind speeds ≪ speed of sound)</li>
+                  <li><strong>Steady state:</strong> Time-averaged quantities; neglects transient effects</li>
+                  <li><strong>Axisymmetric:</strong> Flow is uniform across the disc and radially symmetric</li>
+                  <li><strong>No rotation:</strong> Simplified 1D momentum theory (ignores wake rotation)</li>
+                  <li><strong>Streamtube:</strong> Air that passes through the rotor forms an isolated streamtube</li>
+                </ul>
+              </div>
+
+              <div class="theory-section">
+                <h3>2. Conservation of Mass (Continuity)</h3>
+                <p>
+                  The mass flow rate <strong>ṁ</strong> must be constant along the streamtube.
+                  Applying continuity at three stations:
+                </p>
+                <div class="eq-dev" id="eq_dev_mass"></div>
+                <p>
+                  Where <em>A</em> = πR² is the disc area. As the flow slows, the streamtube
+                  expands to maintain constant mass flux. This gives us the relationship:
+                </p>
+                <div class="eq-dev" id="eq_dev_area"></div>
+              </div>
+
+              <div class="theory-section">
+                <h3>3. Velocity Relations</h3>
+                <p>
+                  The <strong>axial induction factor</strong> <em>a</em> quantifies the velocity
+                  reduction at the disc relative to the freestream:
+                </p>
+                <div class="eq-dev" id="eq_dev_v0"></div>
+                <p>
+                  Applying <strong>momentum conservation</strong> to the control volume around the disc
+                  (assuming pressure far upstream and in the far wake equals atmospheric pressure <em>p</em><sub>∞</sub>),
+                  the thrust force equals the rate of momentum change:
+                </p>
+                <div class="eq-dev" id="eq_dev_thrust_mom"></div>
+                <p>
+                  Applying <strong>Bernoulli's equation</strong> from upstream to just before the disc
+                  and from just after the disc to the wake (with a pressure jump Δ<em>p</em> across the disc):
+                </p>
+                <div class="eq-dev" id="eq_dev_bernoulli"></div>
+                <p>
+                  Combining these relationships yields the wake velocity:
+                </p>
+                <div class="eq-dev" id="eq_dev_vw"></div>
+              </div>
+
+              <div class="theory-section">
+                <h3>4. Power Extraction</h3>
+                <p>
+                  The <strong>power</strong> extracted by the disc is the thrust force times the disc velocity:
+                </p>
+                <div class="eq-dev" id="eq_dev_power"></div>
+                <p>
+                  Substituting the thrust and velocity expressions and simplifying:
+                </p>
+                <div class="eq-dev" id="eq_dev_power_exp"></div>
+              </div>
+
+              <div class="theory-section">
+                <h3>5. Dimensionless Coefficients</h3>
+                <p>
+                  To generalize, we define dimensionless coefficients normalized by the available
+                  kinetic power in the undisturbed flow through area <em>A</em>:
+                </p>
+                <div class="eq-dev" id="eq_dev_pkin"></div>
+                <p><strong>Power coefficient:</strong></p>
+                <div class="eq-dev" id="eq_dev_cp"></div>
+                <p><strong>Thrust coefficient:</strong></p>
+                <div class="eq-dev" id="eq_dev_ct"></div>
+              </div>
+
+              <div class="theory-section">
+                <h3>6. The Betz Limit</h3>
+                <p>
+                  To find the maximum power coefficient, we differentiate <em>C<sub>P</sub></em> with
+                  respect to <em>a</em> and set equal to zero:
+                </p>
+                <div class="eq-dev" id="eq_dev_opt"></div>
+                <p>
+                  Solving this cubic equation yields <strong><em>a</em> = 1/3</strong>.
+                  Substituting back into <em>C<sub>P</sub></em>:
+                </p>
+                <div class="eq-dev" id="eq_dev_betz_result"></div>
+                <p>
+                  This is the <strong>Betz limit</strong>: no wind turbine operating under these
+                  assumptions can extract more than <strong>59.3%</strong> of the kinetic energy
+                  in the wind. Real turbines achieve 70-80% of this theoretical maximum (C<sub>P</sub> ≈ 0.45-0.50)
+                  due to aerodynamic losses, finite blade count, wake rotation, and other effects.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="betz-sidebar">

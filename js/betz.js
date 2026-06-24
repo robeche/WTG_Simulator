@@ -556,6 +556,58 @@ export class BetzApp {
       `C_{P,\\max} = 4\\cdot\\tfrac13\\left(\\tfrac23\\right)^2 = \\frac{16}{27} \\approx 0.593`);
   }
 
+  // Render detailed theory development equations
+  _renderTheoryEquations() {
+    if (typeof katex === "undefined") return;
+    const tex = (id, latex) => {
+      const el = document.getElementById(id);
+      if (el) katex.render(latex, el, { throwOnError: false, displayMode: true });
+    };
+
+    tex("eq_dev_mass",
+      `\\dot{m} = \\rho A_1 V_\\infty = \\rho A V_0 = \\rho A_3 V_w = \\text{const.}`);
+
+    tex("eq_dev_area",
+      `\\frac{A_1}{A} = \\frac{V_0}{V_\\infty} = 1-a, \\quad \\frac{A_3}{A} = \\frac{V_0}{V_w} = \\frac{1-a}{1-2a}`);
+
+    tex("eq_dev_v0",
+      `V_0 = V_\\infty(1-a)`);
+
+    tex("eq_dev_thrust_mom",
+      `T = \\dot{m}(V_\\infty - V_w) = \\rho A V_0 (V_\\infty - V_w)`);
+
+    tex("eq_dev_bernoulli",
+      `p_\\infty + \\tfrac12 \\rho V_\\infty^2 = p_- + \\tfrac12 \\rho V_0^2 \\\\[6pt]
+       p_+ + \\tfrac12 \\rho V_0^2 = p_\\infty + \\tfrac12 \\rho V_w^2 \\\\[6pt]
+       \\Delta p = p_+ - p_- = \\tfrac12 \\rho(V_\\infty^2 - V_w^2)`);
+
+    tex("eq_dev_vw",
+      `T = A \\Delta p = \\tfrac12 \\rho A (V_\\infty^2 - V_w^2) = \\rho A V_0 (V_\\infty - V_w) \\\\[6pt]
+       \\Rightarrow \\; V_0 = \\frac{V_\\infty + V_w}{2} \\; \\Rightarrow \\; V_w = V_\\infty(1-2a)`);
+
+    tex("eq_dev_power",
+      `P = T \\cdot V_0 = \\rho A V_0 (V_\\infty - V_w) \\cdot V_0`);
+
+    tex("eq_dev_power_exp",
+      `P = 2\\rho A V_\\infty^3 \\, a(1-a)^2`);
+
+    tex("eq_dev_pkin",
+      `P_{\\text{kin}} = \\tfrac12 \\rho A V_\\infty^3`);
+
+    tex("eq_dev_cp",
+      `C_P = \\frac{P}{P_{\\text{kin}}} = 4a(1-a)^2`);
+
+    tex("eq_dev_ct",
+      `C_T = \\frac{T}{\\tfrac12 \\rho A V_\\infty^2} = 4a(1-a)`);
+
+    tex("eq_dev_opt",
+      `\\frac{dC_P}{da} = 4\\left[(1-a)^2 + a \\cdot 2(1-a)(-1)\\right] = 4(1-a)(1-3a) = 0 \\\\[6pt]
+       \\Rightarrow \\; a = 1 \\;\\text{(trivial)}\\; \\text{ or }\\; a = \\frac{1}{3}`);
+
+    tex("eq_dev_betz_result",
+      `C_{P,\\max} = 4 \\cdot \\frac{1}{3} \\left(1 - \\frac{1}{3}\\right)^2 = \\frac{4}{3} \\cdot \\frac{4}{9} = \\frac{16}{27} \\approx 0.5926`);
+  }
+
   // ---------------- Gráfica Cp/Ct vs a ----------------
   _initPlot() {
     this.plotCanvas = document.getElementById("betzPlot");
@@ -652,6 +704,16 @@ export class BetzApp {
     document.getElementById("b_reset").addEventListener("click", () => {
       this._animateTo(0);
     });
+
+    // Theory panel toggle
+    const theoryToggle = document.getElementById("theoryToggle");
+    const theoryPanel = theoryToggle.closest(".theory-panel");
+    theoryPanel.classList.add("collapsed"); // Start collapsed
+    theoryToggle.addEventListener("click", () => {
+      theoryPanel.classList.toggle("collapsed");
+    });
+
+    this._renderTheoryEquations();
   }
 
   _animateTo(target) {

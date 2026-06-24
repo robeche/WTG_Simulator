@@ -166,7 +166,7 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
 /* ===================== PESTAÑA BETZ ===================== */
 .betz-app {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr 480px;
   height: 100%;
 }
 .betz-left {
@@ -203,6 +203,81 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
 .betz-sidebar h2:first-child { margin-top: 0; }
 .betz-sidebar .hint { margin: 0 0 10px; }
 
+/* Theory panel (collapsible, below gauges) */
+.theory-panel {
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+.theory-toggle {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.theory-toggle:hover { background: var(--panel2); }
+.toggle-icon {
+  font-size: 10px;
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+.theory-panel.collapsed .toggle-icon { transform: rotate(-90deg); }
+.theory-content {
+  max-height: 30vh;
+  overflow-y: auto;
+  padding: 0 14px 14px;
+  transition: max-height 0.3s ease;
+}
+.theory-panel.collapsed .theory-content {
+  max-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.theory-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.theory-section:last-child { border-bottom: none; }
+.theory-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0 0 10px;
+}
+.theory-section p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+.theory-section ul {
+  margin: 8px 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.theory-section li {
+  margin-bottom: 6px;
+}
+.eq-dev {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 12px 18px;
+  margin: 10px 0;
+  overflow: visible;
+  min-height: fit-content;
+}
+.eq-dev .katex { color: var(--text); white-space: normal; }
+.eq-dev .katex-display { margin: 0.7em 0; overflow: visible; padding: 6px 0; }
+
 .betz-plot {
   width: 100%;
   height: 180px;
@@ -216,13 +291,13 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
   background: var(--panel2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 12px 12px 18px;
   margin-bottom: 8px;
-  overflow-x: auto;
+  overflow: visible;
   font-size: 14px;
 }
 .eqblock .katex { color: var(--text); white-space: normal; }
-.eqblock .katex-display { margin: 0.3em 0; overflow-x: auto; overflow-y: hidden; }
+.eqblock .katex-display { margin: 0.5em 0; overflow: visible; padding-bottom: 4px; }
 .betz-result {
   background: rgba(63, 185, 80, 0.12);
   border-color: var(--accent2);
