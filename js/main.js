@@ -245,10 +245,12 @@ function activateTab(name) {
     if (!betzApp) {
       import("./betz.js").then(({ BetzApp }) => {
         betzApp = new BetzApp(document.getElementById("betzViewport"));
-        betzApp.setActive(true);
+        // Wait for container to have correct dimensions
+        setTimeout(() => { betzApp.setActive(true); }, 30);
       });
     } else {
-      betzApp.setActive(true);
+      // Wait for container to become visible and resize
+      setTimeout(() => { betzApp.setActive(true); }, 30);
     }
   } else if (betzApp) {
     betzApp.setActive(false);

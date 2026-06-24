@@ -90,6 +90,8 @@ export class BetzApp {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(4, 0, 0);
     this.controls.enableDamping = true;
+    this.controls.minDistance = 20;
+    this.controls.maxDistance = 200;
     this.controls.update();
 
     // Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)

@@ -23,8 +23,8 @@ export class Visualizer {
   }
 
   _initScene() {
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
+    const w = this.container.clientWidth || 800;
+    const h = this.container.clientHeight || 600;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x9fc7e8);
@@ -42,6 +42,8 @@ export class Visualizer {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(0, P.hubHeight * 0.6, 0);
     this.controls.enableDamping = true;
+    this.controls.minDistance = 50;
+    this.controls.maxDistance = 500;
     this.controls.update();
 
     // Prevent OrbitControls from intercepting ctrl+wheel (browser zoom)
