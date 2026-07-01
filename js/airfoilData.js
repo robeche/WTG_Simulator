@@ -27,7 +27,7 @@ export const AIRFOIL_INFO = {
   8: { name: "NACA64_A17", file: "NACA64_A17", thickness: 0.18, label: "NACA64-618 (18% t/c)" },
 };
 
-let db = null; // populated once loading finishes: { [id]: { points, ref, polar, thickness } }
+export let db = null; // populated once loading finishes: { [id]: { points, ref, polar, thickness } }
 let loadingPromise = null;
 
 // Parses an AirfoilInfo *_coords.txt shape file. Format: a "NumCoords" header

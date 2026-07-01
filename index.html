@@ -309,6 +309,21 @@
         <div class="betz-left">
           <canvas id="bemCanvas" class="bem-canvas"></canvas>
 
+          <!-- Interactive Polar Plot below the canvas -->
+          <div class="bem-polar-container">
+            <div class="bem-polar-header">
+              <span id="bem_polar_title">Airfoil Polars (Cl, Cd vs α)</span>
+            </div>
+            <div class="bem-polar-plots">
+              <div class="bem-polar-chart-wrapper">
+                <canvas id="bemPolarClCanvas" class="bem-polar-canvas"></canvas>
+              </div>
+              <div class="bem-polar-chart-wrapper">
+                <canvas id="bemPolarCdCanvas" class="bem-polar-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+
           <div class="betz-gauges">
             <div class="gauge"><div class="label">λ (TSR)</div><div class="value"><span id="bem_gauge_lambda">7.0</span></div></div>
             <div class="gauge"><div class="label">β (pitch)</div><div class="value"><span id="bem_gauge_pitch">0.0</span><span class="unit">°</span></div></div>

@@ -12,6 +12,8 @@ import {
   thicknessBlend,
   airfoilLabel,
   airfoilCoeffsBlend,
+  db as airfoilDatabase,
+  AIRFOIL_INFO,
 } from "./airfoilData.js";
 
 // Kick off loading of the real NREL 5MW airfoil polar/shape files (used by
@@ -250,10 +252,14 @@ class BEMInteractiveApp {
   constructor() {
     this.canvas = document.getElementById("bemCanvas");
     this.plotCanvas = document.getElementById("bemCpPlot");
+    this.polarClCanvas = document.getElementById("bemPolarClCanvas");
+    this.polarCdCanvas = document.getElementById("bemPolarCdCanvas");
     if (!this.canvas || !this.plotCanvas) return;
 
     this.ctx = this.canvas.getContext("2d");
     this.plotCtx = this.plotCanvas.getContext("2d");
+    this.polarClCtx = this.polarClCanvas ? this.polarClCanvas.getContext("2d") : null;
+    this.polarCdCtx = this.polarCdCanvas ? this.polarCdCanvas.getContext("2d") : null;
     
     // Operating conditions
     this.windSpeed = 11.4;  // m/s
@@ -516,6 +522,7 @@ class BEMInteractiveApp {
     requestAnimationFrame(this._loop);
     if (!this.active) return;
     this._drawBlade();
+    this._drawPolars();
   }
 
   _drawBlade() {
@@ -723,6 +730,25 @@ class BEMInteractiveApp {
 
     this._drawAirfoil(ctx, airfoilX, airfoilY, airfoilScale, geo.thickness, bladeAngle, useCircular, realShape, refX);
 
+    // Aerodynamic center / Reference point / Origin of dT, dQ, dL, dD vectors:
+    // In BEM methodology, forces are calculated at the quarter-chord point (25% chord)
+    // which serves as the aerodynamic center for subsonic profiles.
+    // Let's place the aerodynamic center (forceOrigin) at the actual 25% chord point, which is:
+    // x_ac = (0.25 - refX) * 2 * airfoilScale [rotated by bladeAngle]
+    const acFraction = 0.25;
+    const acXOffset = (acFraction - refX) * 2 * airfoilScale;
+    const bladeAngleRad = bladeAngle * Math.PI / 180;
+    const forceOriginX = airfoilX + acXOffset * Math.cos(bladeAngleRad);
+    const forceOriginY = airfoilY + acXOffset * Math.sin(bladeAngleRad);
+
+    // Draw aerodynamic center marker (AC)
+    ctx.fillStyle = "#ff6a5c";
+    ctx.beginPath();
+    ctx.arc(forceOriginX, forceOriginY, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "bold 9px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("AC (c/4)", forceOriginX, forceOriginY - 8);
 
     // Chord line (horizontal - represents rotor plane)
     ctx.strokeStyle = "#8b949e";
@@ -738,7 +764,27 @@ class BEMInteractiveApp {
     ctx.fillStyle = "#8b949e";
     ctx.font = "9px system-ui";
     ctx.textAlign = "left";
-    ctx.fillText("Rotor plane", airfoilX + airfoilScale * 1.25, airfoilY + 3);
+    ctx.fillText("Rotor plane (Plane of rotation)", airfoilX + airfoilScale * 1.25, airfoilY + 3);
+
+    // Horizontal line through the Aerodynamic Center (parallel to rotor plane)
+    ctx.strokeStyle = "rgba(139, 148, 158, 0.4)";
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(forceOriginX - airfoilScale, forceOriginY);
+    ctx.lineTo(forceOriginX + airfoilScale, forceOriginY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Chord line along the actual pitched/twisted airfoil
+    ctx.strokeStyle = "#2f81f7";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    ctx.moveTo(airfoilX - refX * 2 * airfoilScale * Math.cos(bladeAngleRad), airfoilY - refX * 2 * airfoilScale * Math.sin(bladeAngleRad));
+    ctx.lineTo(airfoilX + (1 - refX) * 2 * airfoilScale * Math.cos(bladeAngleRad), airfoilY + (1 - refX) * 2 * airfoilScale * Math.sin(bladeAngleRad));
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // Velocity vectors origin - moved to a lower position with respect to the airfoil
     const vecOriginX = airfoilX - airfoilScale * 0.4;
@@ -804,6 +850,43 @@ class BEMInteractiveApp {
     ctx.textAlign = "left";
     ctx.fillText(`φ=${phi.toFixed(1)}°`, vecOriginX + phiRadius + 5, vecOriginY + 12);
 
+    // DRAW RELATIVE WIND VECTOR ("W") VISUALLY SEEN BY THE AIRFOIL AT THE AC
+    // Let's project W pointing towards the Aerodynamic Center (originating from upwind: left-bottom)
+    const windWLen = 130; // visible vector size
+    const relativeWindAngle = wAngle;
+    const wStartX = forceOriginX - windWLen * Math.cos(relativeWindAngle);
+    const wStartY = forceOriginY - windWLen * Math.sin(relativeWindAngle);
+
+    ctx.strokeStyle = "#f0883e";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(wStartX, wStartY);
+    ctx.lineTo(forceOriginX, forceOriginY);
+    ctx.stroke();
+    this._drawArrowhead(ctx, forceOriginX, forceOriginY, relativeWindAngle, relativeWindAngle, "#f0883e");
+    
+    ctx.fillStyle = "#f0883e";
+    ctx.font = "italic 11px system-ui";
+    ctx.textAlign = "right";
+    ctx.fillText(`Relative Wind (W)`, forceOriginX - 35 * Math.cos(relativeWindAngle), forceOriginY - 35 * Math.sin(relativeWindAngle) - 6);
+
+    // DRAW THE ANGLE OF ATTACK (α) ON THE AIRFOIL
+    // It's the angle between the relative wind (direction relativeWindAngle) and the chord line (direction bladeAngleRad)
+    // Let's draw an arc representing α inside the sector between blade angle (twist+pitch) and inflow angle (phi)
+    const aoaRadius = 80;
+    ctx.strokeStyle = "#ff6a5c";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(forceOriginX, forceOriginY, aoaRadius, Math.min(bladeAngleRad, relativeWindAngle), Math.max(bladeAngleRad, relativeWindAngle));
+    ctx.stroke();
+
+    // Draw label for Angle of Attack α
+    const midAoAAngle = (bladeAngleRad + relativeWindAngle) / 2;
+    ctx.fillStyle = "#ff6a5c";
+    ctx.font = "bold 11px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`α = ${alpha.toFixed(1)}°`, forceOriginX + (aoaRadius + 10) * Math.cos(midAoAAngle), forceOriginY + (aoaRadius + 10) * Math.sin(midAoAAngle));
+
     // Aerodynamic forces - length driven by the REAL Cl(α)/Cd(α) computed
     // above, so pitch (which changes α) visibly changes these vectors too,
     // not just the profile rotation. Reference coefficients set the scale
@@ -811,8 +894,6 @@ class BEMInteractiveApp {
     // lengths; lift direction flips sign with cl (e.g. near-zero pitch vs.
     // heavily feathered blade), and drag length is clamped so deep-stall
     // cd spikes stay on-screen.
-    const forceOriginX = airfoilX + airfoilScale * 0.35;
-    const forceOriginY = airfoilY;
     const forceScale = 135;
     const clRef = 1.0;
     const cdRef = 0.01;
@@ -948,6 +1029,204 @@ class BEMInteractiveApp {
     ctx.restore();
   }
 
+  _drawPolars() {
+    if (!this.polarClCanvas || !this.polarCdCanvas || !this.polarClCtx || !this.polarCdCtx) return;
+    
+    // Sourced coordinates & current blending
+    const geo = this._getBladeGeometry(this.radius);
+    
+    // Angle of Attack calculations
+    const omegaRad = this.rotorSpeed * 2 * Math.PI / 60;
+    const a = 0.33;
+    const vAxial = this.windSpeed * (1 - a);
+    const vTang = omegaRad * this.radius;
+    const phi = Math.atan2(vAxial, vTang) * 180 / Math.PI;
+    const twistDeg = geo.twist * 180 / Math.PI;
+    const alpha = phi - twistDeg - this.pitch; // Current Angle of Attack in degrees
+    
+    const clCanvas = this.polarClCanvas;
+    const cdCanvas = this.polarCdCanvas;
+    const clCtx = this.polarClCtx;
+    const cdCtx = this.polarCdCtx;
+    
+    const clRect = clCanvas.getBoundingClientRect();
+    const cdRect = cdCanvas.getBoundingClientRect();
+    const clW = clRect.width;
+    const clH = clRect.height;
+    const cdW = cdRect.width;
+    const cdH = cdRect.height;
+    
+    // Clear and draw backgrounds
+    clCtx.fillStyle = "#11151c";
+    clCtx.fillRect(0, 0, clW, clH);
+    cdCtx.fillStyle = "#11151c";
+    cdCtx.fillRect(0, 0, cdW, cdH);
+    
+    const pad = 28;
+    const clPlotW = clW - 2 * pad;
+    const clPlotH = clH - 2 * pad;
+    const cdPlotW = cdW - 2 * pad;
+    const cdPlotH = cdH - 2 * pad;
+    
+    // Draw axes
+    [clCtx, cdCtx].forEach((ctx, idx) => {
+      const W = idx === 0 ? clW : cdW;
+      const H = idx === 0 ? clH : cdH;
+      const plotH = idx === 0 ? clPlotH : cdPlotH;
+      
+      ctx.strokeStyle = "#2a323d";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // X axis
+      ctx.moveTo(pad, H - pad);
+      ctx.lineTo(W - pad, H - pad);
+      // Y axis
+      ctx.moveTo(pad, H - pad);
+      ctx.lineTo(pad, pad);
+      ctx.stroke();
+      
+      // X Label
+      ctx.fillStyle = "#8b949e";
+      ctx.font = "9px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("Angle of attack α (°)", W / 2, H - 6);
+    });
+    
+    // Draw Cl Y-Label
+    clCtx.fillStyle = "#8b949e";
+    clCtx.font = "9px system-ui";
+    clCtx.textAlign = "center";
+    clCtx.save();
+    clCtx.translate(10, clH / 2);
+    clCtx.rotate(-Math.PI / 2);
+    clCtx.fillText("Lift Coeff. Cl", 0, 0);
+    clCtx.restore();
+    
+    // Draw Cd Y-Label
+    cdCtx.fillStyle = "#8b949e";
+    cdCtx.font = "9px system-ui";
+    cdCtx.textAlign = "center";
+    cdCtx.save();
+    cdCtx.translate(10, cdH / 2);
+    cdCtx.rotate(-Math.PI / 2);
+    cdCtx.fillText("Drag Coeff. Cd", 0, 0);
+    cdCtx.restore();
+
+    // Scale settings: Alpha domain [-30°, +30°]
+    const alphaMin = -30, alphaMax = 30;
+    
+    // Cl range [-1.5, +1.5]
+    const clMin = -1.5, clMax = 1.5;
+    // Cd range [0, 0.4]
+    const cdMin = 0, cdMax = 0.4;
+    
+    // Ticks & Grid
+    // Alpha ticks (every 10°)
+    for (let aVal = -20; aVal <= 20; aVal += 10) {
+      const xCl = pad + ((aVal - alphaMin) / (alphaMax - alphaMin)) * clPlotW;
+      const xCd = pad + ((aVal - alphaMin) / (alphaMax - alphaMin)) * cdPlotW;
+      
+      clCtx.fillStyle = "#555";
+      clCtx.fillText(aVal.toString(), xCl, clH - pad + 12);
+      cdCtx.fillStyle = "#555";
+      cdCtx.fillText(aVal.toString(), xCd, cdH - pad + 12);
+    }
+    
+    // Cl Y-ticks
+    for (let clVal = -1.0; clVal <= 1.0; clVal += 0.5) {
+      const y = clH - pad - ((clVal - clMin) / (clMax - clMin)) * clPlotH;
+      clCtx.fillStyle = "#555";
+      clCtx.textAlign = "right";
+      clCtx.fillText(clVal.toFixed(1), pad - 6, y + 3);
+    }
+    
+    // Cd Y-ticks
+    for (let cdVal = 0.1; cdVal <= 0.3; cdVal += 0.1) {
+      const y = cdH - pad - ((cdVal - cdMin) / (cdMax - cdMin)) * cdPlotH;
+      cdCtx.fillStyle = "#555";
+      cdCtx.textAlign = "right";
+      cdCtx.fillText(cdVal.toFixed(2), pad - 6, y + 3);
+    }
+    
+    // Draw polar curves
+    clCtx.strokeStyle = "#3fb950";
+    clCtx.lineWidth = 1.5;
+    clCtx.beginPath();
+    
+    cdCtx.strokeStyle = "#d29922";
+    cdCtx.lineWidth = 1.5;
+    cdCtx.beginPath();
+    
+    let first = true;
+    for (let aDeg = alphaMin; aDeg <= alphaMax; aDeg += 1) {
+      const rad = aDeg * Math.PI / 180;
+      const { cl: valCl, cd: valCd } = airfoilCoeffsBlend(geo.afLow, geo.afHigh, geo.blend, rad);
+      
+      const xCl = pad + ((aDeg - alphaMin) / (alphaMax - alphaMin)) * clPlotW;
+      const yCl = clH - pad - ((valCl - clMin) / (clMax - clMin)) * clPlotH;
+      
+      const xCd = pad + ((aDeg - alphaMin) / (alphaMax - alphaMin)) * cdPlotW;
+      const yCd = cdH - pad - ((valCd - cdMin) / (cdMax - cdMin)) * cdPlotH;
+      
+      if (first) {
+        clCtx.moveTo(xCl, yCl);
+        cdCtx.moveTo(xCd, yCd);
+        first = false;
+      } else {
+        clCtx.lineTo(xCl, yCl);
+        cdCtx.lineTo(xCd, yCd);
+      }
+    }
+    clCtx.stroke();
+    cdCtx.stroke();
+    
+    // Plot current operating alpha point
+    if (alpha >= alphaMin && alpha <= alphaMax) {
+      const rad = alpha * Math.PI / 180;
+      const { cl: targetCl, cd: targetCd } = airfoilCoeffsBlend(geo.afLow, geo.afHigh, geo.blend, rad);
+      
+      // Draw Cl point
+      const ptClX = pad + ((alpha - alphaMin) / (alphaMax - alphaMin)) * clPlotW;
+      const ptClY = clH - pad - ((targetCl - clMin) / (clMax - clMin)) * clPlotH;
+      clCtx.fillStyle = "#ff6a5c";
+      clCtx.beginPath();
+      clCtx.arc(ptClX, ptClY, 4, 0, Math.PI * 2);
+      clCtx.fill();
+      
+      // Draw Cd point
+      const ptCdX = pad + ((alpha - alphaMin) / (alphaMax - alphaMin)) * cdPlotW;
+      const ptCdY = cdH - pad - ((targetCd - cdMin) / (cdMax - cdMin)) * cdPlotH;
+      cdCtx.fillStyle = "#ff6a5c";
+      cdCtx.beginPath();
+      cdCtx.arc(ptCdX, ptCdY, 4, 0, Math.PI * 2);
+      cdCtx.fill();
+      
+      // Vertical indicator line in both
+      [clCtx, cdCtx].forEach((ctx, idx) => {
+        const H = idx === 0 ? clH : cdH;
+        const ptX = idx === 0 ? ptClX : ptCdX;
+        ctx.strokeStyle = "rgba(255, 106, 92, 0.4)";
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(ptX, pad);
+        ctx.lineTo(ptX, H - pad);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      
+      // Value labels
+      clCtx.fillStyle = "#ff6a5c";
+      clCtx.textAlign = "left";
+      clCtx.font = "9px system-ui";
+      clCtx.fillText(`α=${alpha.toFixed(1)}°, Cl=${targetCl.toFixed(2)}`, ptClX + 8, ptClY - 4);
+      
+      cdCtx.fillStyle = "#ff6a5c";
+      cdCtx.textAlign = "left";
+      cdCtx.font = "9px system-ui";
+      cdCtx.fillText(`α=${alpha.toFixed(1)}°, Cd=${targetCd.toFixed(3)}`, ptCdX + 8, ptCdY - 4);
+    }
+  }
+
   _drawArrowhead(ctx, x, y, angle, direction, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -976,6 +1255,20 @@ class BEMInteractiveApp {
       this.plotCanvas.height = rect.height * dpr;
       this.plotCtx.scale(dpr, dpr);
       this._drawPlot();
+    }
+
+    if (this.polarClCanvas) {
+      const rect = this.polarClCanvas.getBoundingClientRect();
+      this.polarClCanvas.width = rect.width * dpr;
+      this.polarClCanvas.height = rect.height * dpr;
+      if (this.polarClCtx) this.polarClCtx.scale(dpr, dpr);
+    }
+
+    if (this.polarCdCanvas) {
+      const rect = this.polarCdCanvas.getBoundingClientRect();
+      this.polarCdCanvas.width = rect.width * dpr;
+      this.polarCdCanvas.height = rect.height * dpr;
+      if (this.polarCdCtx) this.polarCdCtx.scale(dpr, dpr);
     }
   }
 
