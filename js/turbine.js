@@ -66,46 +66,61 @@ export const TurbineParams = {
   bladeFlap: { freq: 0.70, damping: 0.0048, modalMass: 12000 },
   bladeEdge: { freq: 1.08, damping: 0.0092, modalMass: 13000 },
 
-  // --- Distribución de cuerda y torsión (NREL 5MW) ---
-  // r [m], cuerda [m], torsión [deg], espesor relativo (para selección de perfil)
+  // --- Distribución de cuerda, torsión y perfil aerodinámico (NREL 5MW) ---
+  // Transcrita directamente de NRELOffshrBsline5MW_AeroDyn_blade.dat (19 nodos).
+  // r [m] = hubRadius + BlSpn, cuerda [m], torsión [deg], afid = BlAFID
+  // (identificador de perfil AeroDyn, ver AIRFOIL_INFO en airfoilData.js):
+  //   1-2 = Cylinder (raíz), 3 = DU40, 4 = DU35, 5 = DU30, 6 = DU25,
+  //   7 = DU21, 8 = NACA64-618 (punta).
   bladeStations: [
-    { r: 2.8667, chord: 3.542, twist: 13.308 },
-    { r: 5.6000, chord: 3.854, twist: 13.308 },
-    { r: 8.3333, chord: 4.167, twist: 13.308 },
-    { r: 11.7500, chord: 4.557, twist: 13.308 },
-    { r: 15.8500, chord: 4.652, twist: 11.480 },
-    { r: 19.9500, chord: 4.458, twist: 10.162 },
-    { r: 24.0500, chord: 4.249, twist: 9.011 },
-    { r: 28.1500, chord: 4.007, twist: 7.795 },
-    { r: 32.2500, chord: 3.748, twist: 6.544 },
-    { r: 36.3500, chord: 3.502, twist: 5.361 },
-    { r: 40.4500, chord: 3.256, twist: 4.188 },
-    { r: 44.5500, chord: 3.010, twist: 3.125 },
-    { r: 48.6500, chord: 2.764, twist: 2.319 },
-    { r: 52.7500, chord: 2.518, twist: 1.526 },
-    { r: 56.1667, chord: 2.313, twist: 0.863 },
-    { r: 58.9000, chord: 2.086, twist: 0.370 },
-    { r: 61.6333, chord: 1.419, twist: 0.106 },
+    { r: 1.5000, chord: 3.542, twist: 13.308, afid: 1 },
+    { r: 2.8667, chord: 3.542, twist: 13.308, afid: 1 },
+    { r: 5.6000, chord: 3.854, twist: 13.308, afid: 1 },
+    { r: 8.3333, chord: 4.167, twist: 13.308, afid: 2 },
+    { r: 11.7500, chord: 4.557, twist: 13.308, afid: 3 },
+    { r: 15.8500, chord: 4.652, twist: 11.480, afid: 4 },
+    { r: 19.9500, chord: 4.458, twist: 10.162, afid: 4 },
+    { r: 24.0500, chord: 4.249, twist: 9.011, afid: 5 },
+    { r: 28.1500, chord: 4.007, twist: 7.795, afid: 6 },
+    { r: 32.2500, chord: 3.748, twist: 6.544, afid: 6 },
+    { r: 36.3500, chord: 3.502, twist: 5.361, afid: 7 },
+    { r: 40.4500, chord: 3.256, twist: 4.188, afid: 7 },
+    { r: 44.5500, chord: 3.010, twist: 3.125, afid: 8 },
+    { r: 48.6500, chord: 2.764, twist: 2.319, afid: 8 },
+    { r: 52.7500, chord: 2.518, twist: 1.526, afid: 8 },
+    { r: 56.1667, chord: 2.313, twist: 0.863, afid: 8 },
+    { r: 58.9000, chord: 2.086, twist: 0.370, afid: 8 },
+    { r: 61.6333, chord: 1.419, twist: 0.106, afid: 8 },
+    { r: 63.0000, chord: 1.419, twist: 0.106, afid: 8 },
   ],
 };
 
-// Interpola cuerda y torsión (en rad) a un radio dado.
+// Interpola cuerda, torsión (rad) y perfil aerodinámico a un radio dado.
+// afLow/afHigh son los BlAFID de las dos estaciones que rodean r, y blend
+// en [0,1] indica cuánto pesa afHigh (0 = puro afLow, 1 = puro afHigh) —
+// reproduce la transición gradual de un perfil a otro a lo largo de la pala.
 export function bladeGeometryAt(r) {
   const st = TurbineParams.bladeStations;
   if (r <= st[0].r) {
-    return { chord: st[0].chord, twist: st[0].twist * Math.PI / 180 };
+    return { chord: st[0].chord, twist: st[0].twist * Math.PI / 180, afLow: st[0].afid, afHigh: st[0].afid, blend: 0 };
   }
-  if (r >= st[st.length - 1].r) {
-    const last = st[st.length - 1];
-    return { chord: last.chord, twist: last.twist * Math.PI / 180 };
+  const last = st[st.length - 1];
+  if (r >= last.r) {
+    return { chord: last.chord, twist: last.twist * Math.PI / 180, afLow: last.afid, afHigh: last.afid, blend: 0 };
   }
   for (let i = 0; i < st.length - 1; i++) {
     if (r >= st[i].r && r <= st[i + 1].r) {
       const t = (r - st[i].r) / (st[i + 1].r - st[i].r);
       const chord = st[i].chord + t * (st[i + 1].chord - st[i].chord);
       const twist = st[i].twist + t * (st[i + 1].twist - st[i].twist);
-      return { chord, twist: twist * Math.PI / 180 };
+      return {
+        chord,
+        twist: twist * Math.PI / 180,
+        afLow: st[i].afid,
+        afHigh: st[i + 1].afid,
+        blend: t,
+      };
     }
   }
-  return { chord: 1.0, twist: 0.0 };
+  return { chord: 1.0, twist: 0.0, afLow: last.afid, afHigh: last.afid, blend: 0 };
 }

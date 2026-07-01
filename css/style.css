@@ -356,3 +356,39 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #1a1100
 #zone_down .zone-title { color: #f0883e; }
 .zone-text { font-size: 12px; line-height: 1.4; color: var(--text); }
 .zone-text strong { color: #fff; }
+
+/* ===================== PESTANA BEM ===================== */
+.bem-canvas {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #0e1c2c;
+  border-radius: 4px;
+  cursor: default;
+  display: block;
+}
+
+.bem-results {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(13, 23, 36, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.bem-result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.bem-result-label {
+  color: var(--text-secondary);
+}
+
+.bem-result-val {
+  color: var(--text);
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}

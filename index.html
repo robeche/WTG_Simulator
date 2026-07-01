@@ -21,8 +21,9 @@
   <header>
     <h1>WTG Tools</h1>
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="simulator">Full simulator</button>
-      <button class="tab-btn" data-tab="betz">Induction &amp; Betz Limit</button>
+      <button class="tab-btn active" data-tab="betz">Induction &amp; Betz Limit</button>
+      <button class="tab-btn" data-tab="bem">BEM Method</button>
+      <button class="tab-btn" data-tab="simulator">Full simulator</button>
     </nav>
     <span class="spacer"></span>
     <span class="region-badge" id="regionBadge">Region —</span>
@@ -31,7 +32,7 @@
 
   <main class="tab-container">
     <!-- ============================ TAB 1: SIMULATOR ============================ -->
-    <section id="tab-simulator" class="tab-panel active">
+    <section id="tab-simulator" class="tab-panel">
       <div class="app">
     <div class="left">
       <div id="viewport"></div>
@@ -123,7 +124,7 @@
     </section>
 
     <!-- ============================ TAB 2: BETZ ============================ -->
-    <section id="tab-betz" class="tab-panel">
+    <section id="tab-betz" class="tab-panel active">
       <div class="betz-app">
         <div class="betz-left">
           <div id="betzViewport">
@@ -298,6 +299,122 @@
           <h2>Optimization → Betz Limit</h2>
           <div class="eqblock" id="eq_opt"></div>
           <div class="eqblock betz-result" id="eq_betz"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ TAB 3: BEM METHOD ============================ -->
+    <section id="tab-bem" class="tab-panel">
+      <div class="betz-app">
+        <div class="betz-left">
+          <canvas id="bemCanvas" class="bem-canvas"></canvas>
+
+          <div class="betz-gauges">
+            <div class="gauge"><div class="label">λ (TSR)</div><div class="value"><span id="bem_gauge_lambda">7.0</span></div></div>
+            <div class="gauge"><div class="label">β (pitch)</div><div class="value"><span id="bem_gauge_pitch">0.0</span><span class="unit">°</span></div></div>
+            <div class="gauge"><div class="label">C<sub>P</sub></div><div class="value"><span id="bem_gauge_cp">0.480</span></div></div>
+            <div class="gauge"><div class="label">C<sub>Q</sub></div><div class="value"><span id="bem_gauge_cq">0.069</span></div></div>
+            <div class="gauge"><div class="label">C<sub>T</sub></div><div class="value"><span id="bem_gauge_ct">0.785</span></div></div>
+            <div class="gauge"><div class="label">Status</div><div class="value"><span id="bem_gauge_status">High eff.</span></div></div>
+          </div>
+        </div>
+
+        <div class="betz-sidebar">
+          <h2>Interactive BEM Explorer</h2>
+          <p class="hint">
+            Adjust operating conditions to see how velocity vectors and forces change at each blade section.
+          </p>
+
+          <h3 style="margin-top: 16px; font-size: 13px; color: #8b949e;">Operating Conditions</h3>
+
+          <div class="control">
+            <label>Wind speed V∞ <span class="v" id="bem_wind_val">11.4 m/s</span></label>
+            <input type="range" id="bem_wind" min="4" max="25" step="0.1" value="11.4" />
+          </div>
+
+          <div class="control">
+            <label>Rotor speed Ω <span class="v" id="bem_omega_val">12.1 rpm</span></label>
+            <input type="range" id="bem_omega" min="6" max="15" step="0.1" value="12.1" />
+          </div>
+
+          <div class="control">
+            <label>Pitch angle β <span class="v" id="bem_pitch_val">0.0°</span></label>
+            <input type="range" id="bem_pitch" min="-2" max="30" step="0.5" value="0.0" />
+          </div>
+
+          <h3 style="margin-top: 16px; font-size: 13px; color: #8b949e;">Blade Section</h3>
+
+          <div class="control">
+            <label>Radial position <span class="v" id="bem_radius_val">40.0 m</span></label>
+            <input type="range" id="bem_radius" min="5" max="63" step="1" value="40" />
+          </div>
+
+          <h3 style="margin-top: 16px; font-size: 13px; color: #8b949e;">Performance</h3>
+
+          <div class="bem-results">
+            <div class="bem-result-row">
+              <span class="bem-result-label">TSR λ:</span>
+              <span class="bem-result-val" id="bem_lambda_display">7.00</span>
+            </div>
+            <div class="bem-result-row">
+              <span class="bem-result-label">C<sub>P</sub>:</span>
+              <span class="bem-result-val" id="bem_cp_val">0.480</span>
+            </div>
+            <div class="bem-result-row">
+              <span class="bem-result-label">C<sub>Q</sub>:</span>
+              <span class="bem-result-val" id="bem_cq_val">0.0686</span>
+            </div>
+            <div class="bem-result-row">
+              <span class="bem-result-label">C<sub>T</sub>:</span>
+              <span class="bem-result-val" id="bem_ct_val">0.785</span>
+            </div>
+          </div>
+
+          <p class="hint" id="bem_status">⚡ High efficiency region</p>
+
+          <h2>C<sub>P</sub> vs λ performance map</h2>
+          <canvas id="bemCpPlot" class="betz-plot"></canvas>
+
+          <h2>What BEM Does</h2>
+          <p class="hint">
+            Blade Element Momentum combines <strong>airfoil aerodynamics</strong> and
+            <strong>actuator-disc momentum</strong>. For each pair (λ, β),
+            it computes a steady operating point and returns rotor-level loads and performance.
+          </p>
+
+          <h2>Per-annulus equations</h2>
+          <div class="eqblock" id="bem_eq_annulus_1">
+            $$\tan(\phi) = \frac{V_\infty (1-a)}{\Omega r (1+a')}\,,\qquad
+            \alpha = \phi - (\beta + \theta(r))$$
+          </div>
+          <div class="eqblock" id="bem_eq_annulus_2">
+            $$dT = \tfrac12 \rho W^2 c\,(C_l\cos\phi + C_d\sin\phi)\,B\,dr$$
+            $$dQ = \tfrac12 \rho W^2 c\,(C_l\sin\phi - C_d\cos\phi)\,B\,r\,dr$$
+          </div>
+
+          <h2>Rotor totals and coefficients</h2>
+          <div class="eqblock" id="bem_eq_totals">
+            $$T = \int_{r_{hub}}^{R} dT\,,\qquad Q = \int_{r_{hub}}^{R} dQ\,,\qquad P = \Omega Q$$
+          </div>
+          <div class="eqblock" id="bem_eq_coeffs">
+            $$C_P = \frac{P}{\tfrac12 \rho A V_\infty^3}\,,\qquad
+            C_Q = \frac{Q}{\tfrac12 \rho A R V_\infty^2}\,,\qquad
+            C_T = \frac{T}{\tfrac12 \rho A V_\infty^2}$$
+          </div>
+
+          <h2>How matrices are built</h2>
+          <p class="hint">
+            Sweep a grid of tip-speed ratio and pitch values. At each grid point solve BEM and store:
+          </p>
+          <div class="eqblock" id="bem_eq_maps">
+            $$C_P[i,j] = C_P(\lambda_i,\beta_j),\quad
+            C_Q[i,j] = C_Q(\lambda_i,\beta_j),\quad
+            C_T[i,j] = C_T(\lambda_i,\beta_j)$$
+          </div>
+          <p class="hint">
+            These lookup matrices are then used by controller and simulation modules for fast
+            interpolation during time-domain runs.
+          </p>
         </div>
       </div>
     </section>

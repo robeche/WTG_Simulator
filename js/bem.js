@@ -4,7 +4,7 @@
 // resolviendo iterativamente los factores de inducción axial (a) y tangencial (a').
 
 import { TurbineParams, bladeGeometryAt } from "./turbine.js";
-import { airfoilCoeffs } from "./airfoil.js";
+import { airfoilCoeffsBlend } from "./airfoilData.js";
 
 const NELEM = 24; // número de elementos de pala
 
@@ -17,7 +17,10 @@ const elements = [];
   for (let i = 0; i < NELEM; i++) {
     const r = r0 + (i + 0.5) * dr;
     const geo = bladeGeometryAt(r);
-    elements.push({ r, dr, chord: geo.chord, twist: geo.twist });
+    elements.push({
+      r, dr, chord: geo.chord, twist: geo.twist,
+      afLow: geo.afLow, afHigh: geo.afHigh, blend: geo.blend,
+    });
   }
 })();
 
@@ -29,7 +32,7 @@ function solveElement(el, V, omega, pitch) {
   const B = TurbineParams.nBlades;
   const R = TurbineParams.rotorRadius;
   const rho = TurbineParams.airDensity;
-  const { r, chord, twist } = el;
+  const { r, chord, twist, afLow, afHigh, blend } = el;
   const sigma = (B * chord) / (2 * Math.PI * r); // solidez local
 
   let a = 0.0;
@@ -45,7 +48,7 @@ function solveElement(el, V, omega, pitch) {
     if (phi < 1e-4) phi = 1e-4;
 
     const alpha = phi - twist - pitch;
-    const { cl, cd } = airfoilCoeffs(alpha);
+    const { cl, cd } = airfoilCoeffsBlend(afLow, afHigh, blend, alpha);
 
     const cphi = Math.cos(phi);
     const sphi = Math.sin(phi);
